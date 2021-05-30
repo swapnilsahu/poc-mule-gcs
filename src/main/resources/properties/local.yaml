@@ -1,0 +1,7 @@
+#GCS Configuration
+
+config:
+  gcs:
+    projectId: "xxxxxxxxxxx"
+    bucketName: "mule-gcs-bucket"
+    filePath: "/Users/swapnilsahu/AnypointStudio/studio-workspace/poc-mule-gcs/src/main/resources/Upload-to-GCS.txt"

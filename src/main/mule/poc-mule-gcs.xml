@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="364c2e0b-fa12-4140-a49f-969e92368bcd" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<configuration-properties doc:name="Configuration properties" doc:id="cc0cd768-77fb-493a-ae75-5e09e40db957" file="properties/local.yaml" />
+	<flow name="poc-mule-gcsFlow" doc:id="f00eac7a-ce63-40a1-8da6-2bb2e5762a85" >
+		<http:listener doc:name="Listener" doc:id="0963cb20-2b4e-4f94-b8e1-fb7135178b91" config-ref="HTTP_Listener_config" path="/upload-to-gcs"/>
+		<logger level="INFO" doc:name="Log - Start" doc:id="e8bfc5e9-1e50-48fe-8164-83d4e0a006ed" message='#["Uploading file to GCS Bucket"]'/>
+		<set-variable value="${config.gcs.projectId}" doc:name="projectId" doc:id="0bd272b4-84c6-4ed0-8c08-4dc4345b7a4c" variableName="projectId"/>
+		<set-variable value="${config.gcs.bucketName}" doc:name="bucketName" doc:id="2140490a-2f4c-4f33-a940-9c04209ffd2f" variableName="bucketName"/>
+		<set-variable value='#["sample-upload"]' doc:name="objectName" doc:id="65e561fe-2662-49b7-929b-65cddc174fb5" variableName="objectName"/>
+		<set-variable value="${config.gcs.filePath}" doc:name="filePath" doc:id="5b88fe99-8e3d-43cc-9565-83b1ae0f57db" variableName="filePath"/>
+		<java:invoke-static doc:id="e8eef831-70b1-43d8-9c46-4ae887c089ab" class="com.mule.google.cloud.storage.Upload" method="uploadObject(java.lang.String,java.lang.String,java.lang.String,java.lang.String)">
+			<java:args ><![CDATA[#[{
+	arg0: vars.projectId,
+	arg1: vars.bucketName,
+    arg2: vars.objectName,
+    arg3: vars.filePath,
+    
+}]]]></java:args>
+		</java:invoke-static>
+		<ee:transform doc:name="Set Generic Response" doc:id="971dd97c-57f9-4eb0-bbba-d55707a6ac43" >
+			<ee:message >
+				<ee:set-payload resource="dw/common/send-generic-reponse.dwl" />
+			</ee:message>
+			<ee:variables >
+				<ee:set-variable variableName="httpStatus" ><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</flow>
+</mule>
