@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ftp="http://www.mulesoft.org/schema/mule/ftp" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:java="http://www.mulesoft.org/schema/mule/java"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/java http://www.mulesoft.org/schema/mule/java/current/mule-java.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/ftp http://www.mulesoft.org/schema/mule/ftp/current/mule-ftp.xsd">
+	<flow name="uplaod-object-flow" doc:id="a74fbf9d-8e6a-4b92-ba6e-b04f2083a3ea" >
+		<http:listener doc:name="Listener" doc:id="1c8b169e-f381-4608-a1d9-06b1d0804f5c" config-ref="HTTP_Listener_config" path="/upload-object" />
+		<flow-ref doc:name="Get Access Token" doc:id="8e347307-b004-4c30-ba69-b2418c69374a" name="get-access-token-sub-flow" target="access_token" targetValue="#[payload.access_token]"/>
+		<set-payload value='#[%dw 2.0&#10;output application/json&#10;---&#10;{&#10;  name: "Swapnil",&#10;  age: 31,&#10;  male: true,&#10;  kids: null,&#10;  city: "Melbourne"&#10;}]' doc:name="Set Payload" doc:id="95a406cd-b633-486b-a84e-f84ea54261d5" />
+		<http:request method="POST" doc:name="Calling Google Storage API" doc:id="8b07eed8-158e-4787-b1e5-6a388ba1902a" url="https://storage.googleapis.com/upload/storage/v1/b/{YOUR_BUCKET_NAME}/o">
+			<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Authorization" : "Bearer "++ vars.access_token
+}]]]></http:headers>
+			<http:query-params ><![CDATA[#[output application/java
+---
+{
+	"uploadType" : "media",
+	"name": "uploaded-using-json-api"
+}]]]></http:query-params>
+		</http:request>
+		<ee:transform doc:name="Response from Google API" doc:id="9177995f-5cda-48e3-a37f-0aec712c58e3">
+			<ee:message>
+				<ee:set-payload resource="dw/common/send-generic-reponse.dwl" />
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</flow>
+	<sub-flow name="get-access-token-sub-flow" doc:id="0c747d53-6a2d-483f-bcc1-96ae0a3b231d" >
+		<flow-ref doc:name="get JWT Token" doc:id="32f23d03-5b45-48d5-a840-a37dedd2bb22" name="get-jwt-token-sub-flow" target="jwt_token" targetValue="#[payload.jwtToken]" />
+		<http:request method="POST" doc:name="Exchange JWT with Access Token" doc:id="d1148b84-901e-49ad-8bae-92f2a312aefa" url="https://www.googleapis.com/oauth2/v4/token">
+			<http:query-params><![CDATA[#[output application/java
+---
+{
+	"grant_type" : "urn:ietf:params:oauth:grant-type:jwt-bearer",
+	"assertion": vars.jwt_token
+}]]]></http:query-params>
+		</http:request>
+	</sub-flow>
+	<sub-flow name="get-jwt-token-sub-flow" doc:id="b844f5e2-ffa3-4882-8df2-ce9bb2d4db43" >
+		<logger level="INFO" doc:name="Log - Start" doc:id="b9ddfc60-3b8f-4d13-b71c-5fd1ba712bff" message='#["Uploading file to GCS Bucket"]' />
+		<java:invoke-static doc:name="create and sign JWT token" doc:id="779caa71-5fef-4316-997a-5b5a7b572f77" class="com.mule.google.cloud.storage.GenerateJWTToken" method="createJwtSignedHMAC()">
+		</java:invoke-static>
+		<ee:transform doc:name="Generated JWT" doc:id="d38008fc-eeb3-4f73-bf64-c2610d4c83b7">
+			<ee:message>
+				<ee:set-payload resource="dw/common/send-generic-reponse.dwl" />
+			</ee:message>
+			<ee:variables>
+				<ee:set-variable variableName="httpStatus"><![CDATA[201]]></ee:set-variable>
+			</ee:variables>
+		</ee:transform>
+	</sub-flow>
+</mule>

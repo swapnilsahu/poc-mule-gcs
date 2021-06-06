@@ -4,5 +4,5 @@ output application/json
 ---
 {
 	code: "INFO",
-	message: "File Uploaded to GCS successfully"
+	gcsResponse: payload
 }
